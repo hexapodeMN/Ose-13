@@ -6,68 +6,84 @@
 * @copy		Ecole des Mines de Nantes
 * @date     2013-03-15
 */
+
 #ifndef _ZH_ROBOT_H_
 #define _ZH_ROBOT_H_
 
+/dependecies
 #include "matclpro/cmatrix"
-// la space de nom pour cette librairie.
+
+
+// defintion of the namespace
 namespace zhrobot{
-// la valeur de PI.
+
+
+// defintion of the Pi constant instead of using math.h
 #define PI	(3.1415926)
 
+// definition of custom types
 typedef techsoft::matrix<double>       dMatrix;
 typedef std::valarray<double>          dVector;
-/**
-* @brief   fonction pour imprimer les arrays.
-* @param   dVector
+
+/** 
+* @brief   print the value of a vector in the shell
+* @param   dVector& vector 
 * @return  void
 */
 void printValarray(const dVector& va);
+
 /**
-* @enum	JointType
-* @brief   differentes types de articulations.
+* @enum	 JointType
+* @brief   a joint could be either prismatic or revolute
 */
 typedef enum _JointType{
 	E_JOINT_R,
 	E_JOINT_P
 } JointType;
+
 /**
 * @class	Link
-* @brief   classe pour mettre en modele d'une articulation.
+* @brief   describe a Link in the robot's leg
+* 
+* It describe the type of joint plus geometric parameters to describe the transformation 
+* from one joint to the next in the robot's leg. 
+* The transformation should use Denavit-Hartenberg parameters but there has been a notation missuse
 */
 class Link{
 	private:
-		double theta; ///< angle entre x-1 et x.
-		double d; ///< distance entre x-1 et x.
-		double a; ///< distance entre z et z+1.
-		double alpha; ///< angle entre z et z+1.
-		JointType jt; ///< le type d'articulation.
+		double theta; // rotation around z_i
+		double d; //distance along z_i
+		double a; //distance along x_i-1
+		double alpha; //rotation around x_i-1
+		JointType jt; // joint type either prismatic or revolutive
 		dMatrix A; ///< le matrice de cette articulation.
-		/**
-		* @brief   fonction pour calculer la matrice des parametres.
-		* @param   void
+		/** 
+		* @brief   compute the transformation matrix of the joint according to the Link parameters (private)
+		* @param   none uses the attribute from Link
 		* @return  void
 		*/
 		void calcA();
+		
 	public:
 		Link(double _theta=0, double _d = 0, double _a = 0, double _alpha = 0, JointType _jt = E_JOINT_R);
 		Link(const Link& link);
 		/**
-		* @brief   fonction pour modifier la paramettre de l'articulation, c'est theta pour E_JOINT_R, et d pour E_JOINT_P.
-		* @param   double
-		* @return  void
-		*/
+	 	* @brief set the parameter q accordign to the joint type
+		*/ 
 		void setQ(double q);
-		void setTheta(double theta); ///< modifier theta.
-		void setD(double d); ///< modifier d.
-		void setA(double a); ///< modifier a.
-		void setAlpha(double alpha); ///< modifier alpha.
-		double &getParaTheta();  ///< obtenir theta.
-		double &getParaD(); ///< obtenir d.
-		double &getParaA(); ///< obtenir a.
-		double &getParaAlpha(); ///< obtenir alpha.
-		dMatrix &getA(); ///< obtenir matrice A.
+		void setTheta(double theta); 
+		void setD(double d); 
+		void setA(double a); 
+		void setAlpha(double alpha);
+		double &getParaTheta(); 
+		double &getParaD(); 
+		double &getParaA(); 
+		double &getParaAlpha(); 
+		dMatrix &getA(); 
 };
+
+
+
 /**
 * @class	Robot
 * @brief   classe pour mettre en modele d'un robot avec quelques articulations(Link).
