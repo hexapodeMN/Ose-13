@@ -123,32 +123,104 @@ namespace zhrobot
 	}
 
 // Robot structure
+//   /!\ Robot refers in fact to a leg and not the whole robot
 
-	Robot::Robot(){
-		
-	}
+	/**
+	 * @brief empty constructor for Robot structure
+ 	 */ 
+	Robot::Robot(){	}
+	
+	/**
+	 * @brief constructor for Robot structure
+	 * @param _Links array of Link and num number of link
+ 	 */ 
 	Robot::Robot(Link _links[], int num){
+		// H is the transformation matrix from end-effector (ie end of the leg) to the base frame of the robot
+		// /!\ assumption _links.size() == num
 		H.resize(4,4);
-		// copier links.
+		// Copy of the array of Link, not sure if deep
 		links = new Link[num];
 		for (int i = 0; i<num; i++){
 			links[i] = _links[i];
 		}
+		// store num n the robot attribute linknum whish is the number of Link in the leg/Robot
 		linknum = num;
-		// calculer H.
+		// compute the transformation matrix for the leg
 		calcH();
 	}
+	
+	/**
+	 * @brief deep copy of a Robot
+ 	 */ 
 	Robot::Robot(const Robot& robot){
 		new (this)Robot(robot.links, robot.linknum);
 	}
 	
+	/**
+	 * @brief destructor for Robot object
+ 	 */	
 	Robot::~Robot(){
 		if (NULL != links){
 			delete[] links;
 			links = NULL;
 		}
 	}
-	// justement pour le cas cree par 'new', donc pas de links dans robot.
+	
+	// setters
+	
+	/**
+	 * @brief set q parameter for link number index
+	 * @param index of the link in the Robot/leg
+	 * @param q value of the q parameter for the link
+ 	 */
+	void Robot::setQ(int index, double q){
+		links[index].setQ(q);
+		// compute the transformation matrix for the Robot/leg
+		calcH();
+	}
+	/**
+	 * @brief set q parameter for all link in the Robot/leg
+	 * @param qs vector of q parameters
+ 	 */
+	void Robot::setQs(dVector qs){
+		for (int i = 0; i<linknum; i++){
+			links[i].setQ(qs[i]);
+		}
+		// compute the transformation matrix for the Robot/leg
+		calcH();
+	}	
+	
+	//getters
+	
+	/**
+	 * @brief get H the transforamtion matrix for the Robot/leg
+	 * @return H transforamtion matrix for the Robot/leg
+ 	 */
+	dMatrix& Robot::getH(){
+		return H;
+	}
+	/**
+	 * @brief get A the transforamtion matrix for num-th link
+	 * @return A the transforamtion matrix for num-th link
+ 	 */
+	dMatrix & Robot::getA(int num){
+		return links[num].getA();
+	}
+	/**
+	 * @brief get index-th Link of the Robot/leg
+	 * @return a Link
+ 	 */
+	Link& Robot::getLink(int index){
+		return links[index];
+	}
+	
+	
+	// Methodes for Robot Object
+	/**
+	 * @brief fills in the Link if a Robot/leg as been created without Links
+	 * 
+	 * comment it may be simpler tu suppress the empty constructor
+ 	 */
 	void Robot::setLinks(Link _links[], int num){
 		H.resize(4,4);
 		links = new Link[num];
@@ -156,43 +228,46 @@ namespace zhrobot
 			links[i] = _links[i];
 		}
 		linknum = num;
+		// compute the transformation matrix for the Robot/leg
 		calcH();	
 	}
-	Link& Robot::getLink(int index){
-		return links[index];
-	}	
-	void Robot::setQ(int index, double q){
-		links[index].setQ(q);
-		calcH();
-	}
 	
-	void Robot::setQs(dVector qs){
-		for (int i = 0; i<linknum; i++){
-			links[i].setQ(qs[i]);
-		}
-		calcH();
-	}
-	void Robot::calcH(){
-		H.unit();
-		for (int i = 0; i < linknum; i++){
-			H *= links[i].getA();
-		}
-	}
-	dMatrix& Robot::getH(){
-		return H;
-	}
-	dMatrix & Robot::getA(int num){
-		return links[num].getA();
-	}
+	/**
+	 * @brief get the initial cartesian position of the end effector
+	 * @param src a Vector of the end effector position in the end effector frame, src always equals [0 0 0 1]'
+	 * @return a vector [x y z 1]' in the 0-frame
+ 	 */
 	dVector Robot::getDestCoord(dVector &src){
-		// dst = H * coordonnee T.
+		// H is the transformation matrix for the Robot/leg
 		dVector d = H*src;
 		return d;
 	}
+	/**
+	 * @brief compute the transformation matrix for the whole Robot/leg
+	 */
+	void Robot::calcH(){
+		// H is the transforamtion matrix for the Robot/leg
+		H.unit();
+		for (int i = 0; i < linknum; i++)
+			//compute the transformation matrix of the Robot/leg by multiplying the transforamtion matrices from all Links
+			// the order is good, so that H transform an end effector coordinate in a 0-frame coordinate
+			H *= links[i].getA(); 
+		}
+	}
+	/**
+	 * @brief compute the inver kinematic for a given end effector position
+	 * @return joint position for the cartesan given position of the end effector
+	 * 
+	 * NOT REVIEWED
+	 * 
+ 	 */
 	dVector Robot::invertCoord(dVector &dst){
-		double x = dst[0];
-		double y = dst[1];
-		double z = dst[2];
+		double x = dst[0]; //x
+		double y = dst[1]; //y
+		double z = dst[2]; //z
+		// using the notation from the scheme in hexapode_v2 generation_trajectoire.cpp
+		
+		
 		// distance de axe z4 et z2.
 		double z42 = z - links[1].getParaD();
 		// theta entre x0 et x1.
@@ -223,5 +298,7 @@ namespace zhrobot
 		dVector rst(thetas, 4);
 		return rst;
 	}
+	
+	// A METHODE FOR THE DIRECT KINEMATIC MAY BE USEFUL
 };
 
