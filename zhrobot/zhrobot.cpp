@@ -9,43 +9,58 @@
 #include <iostream>
 #include "zhrobot.hpp"
 
-/* test git */
 
-namespace zhrobot{
-
+namespace zhrobot
+{
+	/** 
+	* @brief   print the value of a vector in the shell
+	* @param   dVector& vector 
+	* @return  void
+	*/
 	void printValarray(const dVector& va)
-	{
+	{ //ecrit dans la console les valeurs d'un vecteur
 	    for (int i=0; i<va.size(); i++) {
 	        std::cout << va[i] << ' ';
 		}
 		std::cout <<std::endl;
 	}
 	
+// Link structure
+
+	/**
+	 * @brief constructor for Link structure
+ 	 */ 
 	Link::Link(double _theta, double _d, double _a, double _alpha, JointType _jt){
-		// resize A to 4*4
-		A.resize(4, 4);
-		theta = _theta;
-		d = _d;
-		a = _a;
-		alpha = _alpha;
-		jt = _jt;
-		// calculer A une fois.
+		// resize A to 4x4 matrix
+		A.resize(4, 4); //  is the transformation matrix  T from i-1 to i configuration
+		theta = _theta; // rotation around z_i
+		d = _d; //distance along z_i
+		a = _a; //distance along x_i-1
+		alpha = _alpha; // rotation around x_i-1
+		//  /!\  this is not the classical convention (taking Denavit-Hartenberg as classic approach )
+		jt = _jt; // is the type of articulation, either prismatic or revolute
+		// compute the transformation matrix
 		calcA();
 	}
-	Link::Link(const Link& link){
-		// copy methode.
+	/**
+	 * @brief deep copy method
+	 */ 
+	Link::Link(const Link& link)
+	{//deep copy of a Link object
 		new (this)Link(link.theta, link.d, link.a, link.alpha, link.jt);
 	}
+	
+	//  setters
+	
 	void Link::setQ(double q){
-		// l'articulation est Rotate.
-		if (E_JOINT_R == jt){
+	// set the parameter according to the joint type
+		if (E_JOINT_R == jt){ // revolute joint
 			theta = q;
 		}
-		// l'articulation est prolonger.
-		else{
+		else{ // prismatic joint, although it wont occure on our hexapod
 			d = q;
 		}
-		// apres, calculer A une fois.
+		// compute the transformation matrix
 		calcA();
 	}
 	void Link::setTheta(double theta){
@@ -60,6 +75,12 @@ namespace zhrobot{
 	void Link::setAlpha(double alpha){
 		this->alpha = alpha;	
 	}
+	
+	// getters
+	
+	dMatrix& Link::getA(){
+		return A;
+	}
 	double &Link::getParaTheta(){
 		return theta;
 	}
@@ -72,27 +93,37 @@ namespace zhrobot{
 	double &Link::getParaAlpha(){
 		return alpha;
 	}
+	
+	// Methods for Link objects
+	
+	/** 
+	* @brief   compute the transformation matrix of the joint according to the Link parameters
+	* @param   none uses the attribute from Link
+	* @return  void
+	*/
 	void Link::calcA(){
 		// A = Rz*Tz*Tx*Rx
-		dMatrix Rz(4,4,0.0), Tz(4,4,0.0), Tx(4,4,0.0), Rx(4,4,0.0);
-		Rz.unit();
+		// according to Denavit-Hartenberg parameters
+		// for all matrix M [row][column]
+		dMatrix Rz(4,4,0.0), Tz(4,4,0.0), Tx(4,4,0.0), Rx(4,4,0.0); // create 4x4 null matrix
+		Rz.unit(); // the rotation matrix around z axis
 		Rz[0][0] = Rz[1][1]= cos(theta);
 		Rz[0][1] = -sin(theta);
 		Rz[1][0] = sin(theta);
-		Tz.unit();
+		Tz.unit(); // the translation along z axis
 		Tz[2][3] = d;
-		Tx.unit();
+		Tx.unit(); // the translation along x axis
 		Tx[0][3] = a;
-		Rx.unit();
+		Rx.unit(); // the roation arounf x axis
 		Rx[1][1] = Rx[2][2] = cos(alpha);
 		Rx[1][2] = -sin(alpha);
 		Rx[2][1] = sin(alpha);
+		// compute the transformation matrix
 		A = Rz * Tz * Tx * Rx;
 	}
-	dMatrix& Link::getA(){
-		return A;
-	}
-	
+
+// Robot structure
+
 	Robot::Robot(){
 		
 	}
