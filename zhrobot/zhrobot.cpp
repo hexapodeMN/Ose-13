@@ -270,7 +270,7 @@ namespace zhrobot
 		double z = dst[2]; //z
 		// using the notation from the scheme in hexapode_v2 generation_trajectoire.cpp
 		
-		
+// -------------------------------		
 		// distance de axe z4 et z2.
 		double z42 = z - links[1].getParaD();
 		// theta entre x0 et x1.
@@ -300,6 +300,9 @@ namespace zhrobot
 		double thetas[] = {theta1, theta2, theta3, theta4};
 		dVector rst(thetas, 4);
 		return rst;
+// -------------------------------	
+
+		
 	}
 	
 	// A METHODE FOR THE DIRECT KINEMATIC MAY BE USEFUL

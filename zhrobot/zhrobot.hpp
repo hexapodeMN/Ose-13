@@ -18,28 +18,28 @@
 namespace zhrobot{
 
 
-// defintion of the Pi constant instead of using math.h
-#define PI	(3.1415926)
-
-// definition of custom types
-typedef techsoft::matrix<double>       dMatrix;
-typedef std::valarray<double>          dVector;
-
-/** 
-* @brief   print the value of a vector in the shell
-* @param   dVector& vector 
-* @return  void
-*/
-void printValarray(const dVector& va);
-
-/**
-* @enum	 JointType
-* @brief   a joint could be either prismatic or revolute
-*/
-typedef enum _JointType{
-	E_JOINT_R,
-	E_JOINT_P
-} JointType;
+	// defintion of the Pi constant instead of using cmath.h
+	#define PI	(3.1415926)
+	
+	// definition of custom types
+	typedef techsoft::matrix<double>       dMatrix;
+	typedef std::valarray<double>          dVector;
+	
+	/** 
+	* @brief   print the value of a vector in the shell
+	* @param   dVector& vector 
+	* @return  void
+	*/
+	void printValarray(const dVector& va);
+	
+	/**
+	* @enum	 JointType
+	* @brief   a joint could be either prismatic or revolute
+	*/
+	typedef enum _JointType{
+		E_JOINT_R,
+		E_JOINT_P
+	} JointType;
 
 	/**
 	* @class	Link
