@@ -1,10 +1,10 @@
 /**
 * @file     zhrobot.cpp
-* @brief    les classes et methodes de zhrobot.
-* @details  Cette librairie est pour mettre en modele des articulations et calculer cinétique et cinétique inverse.
-* @author   caesarhao@gmail.com
+* @brief    Implementation of Classes en methods from zhrobot
+* @details  Describe joint and legs from a robot, propose an inverse kinematic model
+* @author   caesarhao@gmail.com 
 * @copy		Ecole des Mines de Nantes
-* @date     2013-03-15
+* @date     2014-02-05
 */
 #include <iostream>
 #include "zhrobot.hpp"
@@ -25,7 +25,7 @@ namespace zhrobot
 		std::cout <<std::endl;
 	}
 	
-// Link structure
+// Link Class
 
 	/**
 	 * @brief constructor for Link structure
@@ -38,7 +38,7 @@ namespace zhrobot
 		a = _a; //distance along x_i-1
 		alpha = _alpha; // rotation around x_i-1
 		//  /!\  this is not the classical convention (taking Denavit-Hartenberg as classic approach )
-		jt = _jt; // is the type of articulation, either prismatic or revolute
+		jt = _jt; // is the type of joint, either prismatic or revolute
 		// compute the transformation matrix
 		calcA();
 	}
@@ -52,8 +52,10 @@ namespace zhrobot
 	
 	//  setters
 	
+	/**
+	 * @brief set the parameter q accordign to the joint type
+	 */ 
 	void Link::setQ(double q){
-	// set the parameter according to the joint type
 		if (E_JOINT_R == jt){ // revolute joint
 			theta = q;
 		}
@@ -78,9 +80,7 @@ namespace zhrobot
 	
 	// getters
 	
-	dMatrix& Link::getA(){
-		return A;
-	}
+
 	double &Link::getParaTheta(){
 		return theta;
 	}
@@ -93,11 +93,14 @@ namespace zhrobot
 	double &Link::getParaAlpha(){
 		return alpha;
 	}
+		dMatrix& Link::getA(){
+		return A;
+	}
 	
 	// Methods for Link objects
 	
 	/** 
-	* @brief   compute the transformation matrix of the joint according to the Link parameters
+	* @brief   compute the transformation matrix of the joint according to the Link parameters (private)
 	* @param   none uses the attribute from Link
 	* @return  void
 	*/
@@ -122,7 +125,7 @@ namespace zhrobot
 		A = Rz * Tz * Tx * Rx;
 	}
 
-// Robot structure
+// Robot Class
 //   /!\ Robot refers in fact to a leg and not the whole robot
 
 	/**
@@ -243,10 +246,10 @@ namespace zhrobot
 		return d;
 	}
 	/**
-	 * @brief compute the transformation matrix for the whole Robot/leg
+	 * @brief compute the transformation matrix for the whole Robot/leg (private)
 	 */
 	void Robot::calcH(){
-		// H is the transforamtion matrix for the Robot/leg
+		// H is the transforamtion matrix for the Robot/leg 
 		H.unit();
 		for (int i = 0; i < linknum; i++)
 			//compute the transformation matrix of the Robot/leg by multiplying the transforamtion matrices from all Links
