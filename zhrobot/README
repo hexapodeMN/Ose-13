@@ -1,0 +1,7 @@
+/!\  This is note related to ROS if you want to use this library 
+	on your computer you should compil it 
+
+It will be stored in :  
+
+	libzhrobot.so /usr/lib64/
+	zhrobot.hpp /usr/include/
