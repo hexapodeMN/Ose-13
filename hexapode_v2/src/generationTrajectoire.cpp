@@ -1,12 +1,16 @@
 /**
 * @file     generationTrajectoire.cpp
-* @brief    le noeud pour recevoir la commande de client et calculer et envoyer les commandes pour le robot.
-* @details  comme brief.
+* @brief    ROS node to listen to keyboard command and move the hexapod 
+* 			accordingly
+* @details  
 * @author   caesarhao@gmail.com
 * @copy		Ecole des Mines de Nantes
-* @date     2013-03-30
+* @date     2014-02-06
 */
-/*
+
+/** Basic view of the hexapod
+ * 
+ * 
  * FRONT VIEW       ^       0==0             0==0
  *    |=======|     |       |  |---x[___]x---|  |
  *    |       |     Z       |                   |
@@ -25,98 +29,122 @@
  *   2         5
  */
 
+#include <iostream>
+#include <math.h> 
+// ROS related include 
 #include <ros/ros.h>
 #include <hexapode_v2/translation.h>
 #include <hexapode_v2/etat_robot.h>
 #include <hexapode_v2/sequence_moteur.h>
-
-#include <iostream>
-#include <math.h>
 #include "zhrobot.hpp"
+#include "generationTrajectoire.hpp"
+
 using namespace std;
+
 using namespace zhrobot;
-// la valeur de servo quand l'angle est 0.
+//------------------------
+// should be in an header file, but not sure how to use it in ROS
+// some hints may in there
+// http://answers.ros.org/question/31636/including-header-files-in-ros-build-system/
+// http://wiki.ros.org/catkin/conceptual_overview
+
+
+// Zero value for motors' encoder 
 #define SERVO_ZERO	(600)
-// la valeur de servo quand l'angle est PI(180 degres).
+// Pi value for motor's encoder, ie our upper bound
 #define SERVO_PI	(2400)
-// le cadre de servo peut bouger.
-#define SERVO_CARDE	(SERVO_PI-SERVO_ZERO)
-// la valeur de servo quand l'angle est PI/2.
+// Set of admissible value for our configuration
+#define SERVO_CARDE	(SERVO_PI-SERVO_ZERO) //1800
+// Center value for motor's encoder, we want to work around it 
 #define SERVO_CENTRE	(1500)
-// la maximum degres le servo peut bouger, pas utile maintenant.
-#define MAX_ANGLE	(PI/4)
-// la maximum distance les pattes peuvent bouger dans l'axe X, Y, Z.
-#define MAX_X		(40.0)
+// Maximun angle for function checkangle which is not used yet
+#define MAX_ANGLE	(PI/4) // 0.78 rad, 45 deg 
+// Maximun admissible displacement for any translation  during a timestep
+#define MAX_X		(40.0) // mm
 #define MAX_Y		(40.0)
 #define MAX_Z		(40.0)
-// la maximum angle les pattes peuvent tourner horizontalement.
-#define MAX_A		(0.30) // environt 17 degrees
-// la hauteur des pattes quand ils bouger dans l'air.
-#define STEP_UP		(40.0)
+// Maximum angle of rotation of the robot around z_0 axis
+#define MAX_A		(0.30) // 0.30 rad, 17 deg
+// altitude of the end effector, end of one leg, when up final position is up
+#define STEP_UP		(40.0) // mm
 
-// l'etat des pattes de robot.
+
+
+// Possible state of the robot's legs
 typedef enum _etat{
-	E_ROBOT_PARALLEL,
-	E_ROBOT_LEFT_UP, // 1,3,5 up
-	E_ROBOT_RIGHT_UP // 0, 2, 4 up
+	E_ROBOT_PARALLEL, // all the leg on the ground
+	E_ROBOT_LEFT_UP, // legs 1,3,5 up
+	E_ROBOT_RIGHT_UP // legs 0, 2, 4 up
 }rbt_etat;
 
-// les types de bouger de robot.
+// Possible type of move for the robot
 typedef enum _move_state{
-	E_MOVE_UPDOWN,
-	E_MOVE_VERTICAL,
-	E_MOVE_HORIZONTAL,
-	E_MOVE_TOURNE
+	E_MOVE_UPDOWN, // along the z_0 axis
+	E_MOVE_VERTICAL, // along the y_0 axis
+	E_MOVE_HORIZONTAL, // along the x_0 axis
+	E_MOVE_TOURNE // rotation around z_0
 } move_etat;	
 
+// Methods of generationTrajectoire 
 void ecouteTranslation(const hexapode_v2::translation trans);
-
 void  envoieCmd();
-
 void ecouteEtatRobot(const hexapode_v2::etat_robot etat_robot);
+
+
 
 /**
 * @class	GeneTraj
-* @brief   la classe pour mettre en modele d'un robot hexapode.
+* @brief   Class  describing the whole robot and it's moves 
 */
 class GeneTraj
-{
+{ 
 	private:
-		int robotType; ///< le petit(0) ou le grand(1).
-		Robot rbs[6]; ///< contenir 6 pattes.
-		dVector srcCoor; ///< coordonnee source des pattes, toujours (0, 0, 0, 1).
-		dVector dstCoor[6]; ///< les coordonnees des 6 pattes dans le system de coordonnee zero.
-		dVector dstCoorStand[6]; ///< les coordonnees initiales des 6 pattes dans le system de coordonnee zero.
-		dVector vangles[6]; ///< les angles des servos des pattes.
-		rbt_etat retat; ///< l'etat de robot.
-		move_etat metat; ///< le type de mouvement de robot.
-		char cmd[256]; ///< la commande vers la carte de robot.
-		int vMoteur[6][3]; ///< les values numeriques des servos des pattes, calculees de vangles.
-		int vMoteurOld[6][3]; ///< les valeurs dernieres de servos.
-		double C; ///< la constant valeur dans y = a*x^2 + b*x + C
-		double betaX, betaY, betaZ, betaA; ///< la valeur accumulee de commande de client. on obtient la distance de mouvement par y = MAX_Y*sin(betaY);
-		
+		int robotType; // to differenciate our two setup (0 small one) (1 big one with laser scanner)
+		Robot rbs[6]; //array of 6 Legs, an hexapod
+		dVector srcCoor; // cartesaian coordiante of the end of a leg in it's base
+		dVector dstCoor[6];// current cartesian coordinate of all legs' end , in 0 frame
+		dVector dstCoorStand[6]; // final cartesian coordinate of all legs' end , in 0 frame
+		dVector vangles[6]; // array of motors' angle vangles[0]=[theta0, theta1,theta2,q3] is for leg[0] 
+		rbt_etat retat; // state of the robot's leg
+		move_etat metat; //type of movement for the robot
+		char cmd[256]; // string to send to the low level motor board
+		int vMoteur[6][3]; //current servo command for the motor board
+		int vMoteurOld[6][3]; //previous servo command for the motor board
+		double C; // in y = a*x^2 + b*x + C used to compute legs path
+		double betaX, betaY, betaZ, betaA; // accumulated command value from the client, one can deduce the displacement along one axis by y=Y_MAX*sin(betaY)
+				
 	public:
-		GeneTraj();
-		~GeneTraj();
-		void initRobot1(); ///< initialisation de petit robot.
-		void initRobot2(); ///< initialisation de grand robot.
-   		char *getCmd(); ///< obtenir la commande pour la carte de robot.
-		move_etat calcMoveType(double dx,double dy,double dh, double da); ///< obtenir le type de mouvement de la commande de client.
-		void retablirAngles(); ///< reset les angles des pattes.
-		int transAngletoNum(int patteNum,int motorNum,double angle); ///< transformer les angles de pattes a les nombres de servos.
-		void calcNextPosition(int robotNum); ///< calcuer la position prochaine pour une patte.
-		void createTraj(double dBetaX, double dBetaY, double dBetaZ, double dBetaA); ///< creer la trajectoire.
-		void createCmd(); ///< creer la commande pour la carte de robot.
-		bool checkAngles(dVector angles); ///< pas utile maintenant.
+		//getter
+		char *getCmd();
+	
+		//methods
+
+		void initRobot1();
+		void initRobot2();  
+		move_etat calcMoveType(double dx,double dy,double dh, double da); 
+		void retablirAngles(); 
+		int transAngletoNum(int patteNum,int motorNum,double angle); 
+		void calcNextPosition(int robotNum); 
+		void createTraj(double dBetaX, double dBetaY, double dBetaZ, double dBetaA); 
+		void createCmd(); 
+		// not used yet
+		bool checkAngles(dVector angles); 
  };
 
+//-------------------------
 
-GeneTraj::GeneTraj(){
-	robotType = 0; ///< par default, le type de robot est petit.
-}
+// getter
 /**
-* @brief   fonction pour initialiser le petit robot.
+* @brief   fonction pour initialiser le grand robot.
+* @param   void
+* @return  void
+*/
+char* GeneTraj::getCmd(){
+	return cmd;
+}
+// methods
+/**
+* @brief   Set the parameters for the small hexapod
 * @param   void
 * @return  void
 */
@@ -133,53 +161,80 @@ void GeneTraj::initRobot1(){
 	robotType = 0;
 	std::cout<<"Initialisation le petit robot"<<std::endl;
 	Link ls[]={
+		/**
+		 * theta  rotation around z_i
+		 * d distance along z_i
+		 * a  x_i-1
+		 * alpha  rotation around x_i-1
+		 */
 		//   theta,    d,		 a, 	     alpha
 		Link(0,		0, 		88, 	0), // link1
 		Link(0,	  -29,		28,		PI/2), // link2
 		Link(0,		0,		77,		0), // link3
 		Link(-PI/2,	0,		103,	 0) // link4
-	};
-	/*
-			0	3
+	};  
+	
+/*
+		0	3
 
-		1			4
-
-			2	5
-	*/
-	for (int i = 0; i < 6; i++){
+	1			4
+	
+		2	5
+*/
+	for (int i = 0; i < 6; i++){ // set the parametrization for each leg
 		rbs[i].setLinks(ls, 4);
 		vangles[i].resize(0.0, 4);
 	}
+	
+	// Set the position of all leg around the hexapod
+	// before that the legs are all set at the same position 
+	//by simply rotating around z_0 and translating along the nex x axis
+	// one can easily set all the legs orientation
+	
 	rbs[0].setQ(0, 2.05);
 	rbs[0].getLink(0).setA(88);
+	
 	rbs[1].setQ(0, PI);
 	rbs[1].getLink(0).setA(63);
+	
 	rbs[2].setQ(0, -2.05);
 	rbs[2].getLink(0).setA(88);
+	
 	rbs[3].setQ(0, 1.09);
 	rbs[3].getLink(0).setA(88);
+	
 	rbs[4].setQ(0, 0);
 	rbs[4].getLink(0).setA(63);
+	
 	rbs[5].setQ(0, -1.09);
 	rbs[5].getLink(0).setA(88);
-	
+
+	// set the coordinate of the end of the leg in it's base ie [0,0,0,1]'	
 	srcCoor.resize(4, 0.0);
 	srcCoor[3] = 1;
 
+	// define the cartesian coordinate for the end effector in 0 frame
 	for (int i = 0; i < 6; i++){
-		rbs[i].getH();
+		// rbs[i].getH();
 		dstCoor[i].resize(4, 0.0);
 		dstCoorStand[i].resize(4, 0.0);
-		dstCoorStand[i] = dstCoor[i] = rbs[i].getDestCoord(srcCoor);
+		// current and final coordinate are the same -> no move
+		dstCoorStand[i] = dstCoor[i] = rbs[i].getDestCoord(srcCoor); 
 	}
+	
+	//default state and move 
 	retat = E_ROBOT_PARALLEL;
 	metat = E_MOVE_UPDOWN;
+	//the client input are null at hte beginning
 	betaX = betaY = betaZ = betaA = 0;
+	// set the constant to the value C=z_4+step_up expressed in 0-frame
+	// ie C=step_up in 0-frame the maxiamle altitude of the end of one leg in 0 frame
 	C = dstCoorStand[0][2]+STEP_UP;
+    // set all the entry in vMoteurOld to zero
 	memset(vMoteurOld, 0, sizeof(vMoteurOld));
 }
 /**
-* @brief   fonction pour initialiser le grand robot.
+* @brief   set the parameters for the big hexapod
 * @param   void
 * @return  void
 */
@@ -197,6 +252,12 @@ void GeneTraj::initRobot2(){
 	std::cout<<"Initialisation le grand robot"<<std::endl;
 
 	Link ls[]={
+		/**
+		 * theta  rotation around z_i
+		 * d distance along z_i
+		 * a  x_i-1
+		 * alpha  rotation around x_i-1
+		 */
 		//   theta, d,		 a, 	alpha
 		Link(0,		0, 		136, 	0), // link1
 		Link(0,		0,		30,		PI/2), // link2
@@ -210,10 +271,18 @@ void GeneTraj::initRobot2(){
 
 			2	5
 	*/
-	for (int i = 0; i < 6; i++){
+	for (int i = 0; i < 6; i++){// set the parametrization for each leg
 		rbs[i].setLinks(ls, 4);
 		vangles[i].resize(0.0, 4);
 	}
+	
+	// Set the position of all leg around the hexapod
+	// before that the legs are all set at the same position 
+	// by simply rotating around z_0 
+	// one can easily set all the legs orientation
+	// /!\ in fact the right and the left of the robot don't have the same parametrization 
+	//      some translation offsets are differents
+		
 	rbs[0].setQ(0, 2*PI/3);
 	rbs[1].setQ(0, PI);
 	rbs[2].setQ(0, -2*PI/3);
@@ -221,111 +290,29 @@ void GeneTraj::initRobot2(){
 	rbs[4].setQ(0, 0);
 	rbs[5].setQ(0, -PI/3);
 
+	// set the coordinate of the end of the leg in it's base ie [0,0,0,1]'
 	srcCoor.resize(4, 0.0);
 	srcCoor[3] = 1;
-
+	
+    // define the cartesian coordinate for the end effector in 0 frame
 	for (int i = 0; i < 6; i++){
-		rbs[i].getH();
+		//rbs[i].getH();
 		dstCoor[i].resize(4, 0.0);
 		dstCoorStand[i].resize(4, 0.0);
+		// current and final coordinate are the same -> no move
 		dstCoorStand[i] = dstCoor[i] = rbs[i].getDestCoord(srcCoor);
 	}
+	
+	//default state and move
 	retat = E_ROBOT_PARALLEL;
 	metat = E_MOVE_UPDOWN;
+	//the client input are null at hte beginning
 	betaX = betaY = betaZ = betaA = 0;
+	// set the constant to the value C=z_4+step_up expressed in 0-frame
+	// ie C=step_up in 0-frame the maxiamle altitude of the end of one leg in 0 frame	
 	C = dstCoorStand[0][2]+STEP_UP;
+    // set all the entry in vMoteurOld to zero	
 	memset(vMoteurOld, 0, sizeof(vMoteurOld));
-}
-
-GeneTraj::~GeneTraj(){
-
-}
-char* GeneTraj::getCmd(){
-	return cmd;
-}
-
-
-int GeneTraj::transAngletoNum(int patteNum, int motorNum, double angle){
-	if (patteNum < 3)// gauche
-	{
-		switch(motorNum){
-			case 0:
-				return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
-			case 1:
-				if (0 == robotType){ // petit robot.
-					return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-				else{ // grand robot.
-					return (int)(-angle*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-			default: // 2.
-				if (0 == robotType){
-					return (int)(-(PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-				else{
-					return (int)((PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-		}
-	}
-	else{ // droite.
-		switch(motorNum){
-			case 0:
-				return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
-			case 1:
-				if (0 == robotType){
-					return (int)(-angle*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-				else{
-					return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-			default: // 2
-				if (0 == robotType){
-					return (int)((PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-				else{
-					return (int)(-(PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
-				}
-		}	
-	}
-}
-/**
-* @brief   fonction pour creer la commande pour la carte de robot, en fonction de la datasheet.
-* @param   void
-* @return  void
-*/
-void GeneTraj::createCmd(){
-	cmd[0] = '\0';
-	char temp[20];
-	for (int i = 0; i<6; i++){
-		for (int j = 0; j < 3; j++){
-			if (i<3){
-				sprintf(temp, "# %d P%d ", 4*i+j, vMoteur[i][j]);
-			}
-			else{
-				sprintf(temp, "# %d P%d ", 4*(1+i)+j, vMoteur[i][j]);			
-			}
-			if (abs(vMoteur[i][j] - vMoteurOld[i][j]) > 5){
-				strcat(cmd, temp);
-			}
-			vMoteurOld[i][j] = vMoteur[i][j];
-		}
-	}
-	strcat(cmd, "\r\n");
-}
-// pas utile maintenant.
-bool GeneTraj::checkAngles(dVector angles){
-	if ((angles[1] >= MAX_ANGLE) || (angles[1]<= -MAX_ANGLE)){
-		return false;
-	}
-	else if((angles[2] >= MAX_ANGLE) || (angles[2]<= -MAX_ANGLE)){
-		return false;
-	}
-	else if(((angles[3]+PI/2) >= MAX_ANGLE) || ((angles[3]+PI/2) <= -MAX_ANGLE)){
-		return false;
-	}
-	else{
-		return true;
-	}
 }
 /**
 * @brief   fonction pour calculer le type de mouvement de robot, en fonction de la commande de client.
@@ -361,6 +348,54 @@ void GeneTraj::retablirAngles(){
 	}
 	betaX = betaY = betaZ = betaA = 0;
 	memset(vMoteurOld, 0, sizeof(vMoteurOld));
+}
+/**
+* @brief   fonction pour initialiser le grand robot.
+* @param   void
+* @return  void
+*/
+int GeneTraj::transAngletoNum(int patteNum, int motorNum, double angle){
+	if (patteNum < 3) // gauche
+	{
+		switch(motorNum){
+			case 0:
+				return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
+			case 1:
+				if (robotType == 0){ //small hexapod
+					return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+				else{ // big hexapod
+					return (int)(-angle*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+			default: // 2.
+				if (robotType == 0){ //small hexapod
+					return (int)(-(PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+				else{ // big hexapod
+					return (int)((PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+		}
+	}
+	else{ // droite.
+		switch(motorNum){
+			case 0:
+				return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
+			case 1:
+				if (robotType == 0){ //small hexapod
+					return (int)(-angle*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+				else{
+					return (int)(angle*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+			default: // 2
+				if ( robotType ==0 ){ //small hexapod
+					return (int)((PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+				else{ // big hexapod
+					return (int)(-(PI/2 + angle)*SERVO_CARDE/PI + SERVO_CENTRE);
+				}
+		}	
+	}
 }
 /**
 * @brief   fonction pour calculer la position prochaine.
@@ -513,71 +548,145 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 			vMoteur[i][j] = transAngletoNum(i, j, vangles[i][1+j]);	
 		}
 	}
-	cout << "---------------" << endl;
+	// cout << "---------------" << endl;
 }
+/**
+* @brief   fonction pour creer la commande pour la carte de robot, en fonction de la datasheet.
+* @param   void
+* @return  void
+*/
+void GeneTraj::createCmd(){
+	cmd[0] = '\0';
+	char temp[20];
+	for (int i = 0; i<6; i++){
+		for (int j = 0; j < 3; j++){
+			if (i<3){
+				sprintf(temp, "# %d P%d ", 4*i+j, vMoteur[i][j]);
+			}
+			else{
+				sprintf(temp, "# %d P%d ", 4*(1+i)+j, vMoteur[i][j]);			
+			}
+			if (abs(vMoteur[i][j] - vMoteurOld[i][j]) > 5){
+				strcat(cmd, temp);
+			}
+			vMoteurOld[i][j] = vMoteur[i][j];
+		}
+	}
+	strcat(cmd, "\r\n");
+}
+
+/**
+* @brief   NOT USED YET
+* @param   vector of 4 angles
+* @return  bool
+*/
+bool GeneTraj::checkAngles(dVector angles){
+	if ((angles[1] >= MAX_ANGLE) || (angles[1]<= -MAX_ANGLE)){
+		return false;
+	}
+	else if((angles[2] >= MAX_ANGLE) || (angles[2]<= -MAX_ANGLE)){
+		return false;
+	}
+	else if(((angles[3]+PI/2) >= MAX_ANGLE) || ((angles[3]+PI/2) <= -MAX_ANGLE)){
+		return false;
+	}
+	else{
+		return true;
+	}
+}
+
+
+//======================================================================
 
 GeneTraj gen;
 ros::ServiceClient *pclient = NULL;
 
+
+/**
+* @brief   Function triggered by the topic translation, 
+* create the new move for all the legs and send the command to the motors
+* @param   double, double, double, double
+* @return  void
+*/
 void ecouteTranslation(const hexapode_v2::translation trans)
 {
-	double factor = 15;
-    if(1)//!envoie)
-    {
-        ROS_DEBUG("dx: [%f]", trans.dx);
-        ROS_DEBUG("dy: [%f]", trans.dy);
-        ROS_DEBUG("da: [%f]", trans.da);
-        ROS_DEBUG("dh: [%f]", trans.dh);
-		cout << trans.dx << trans.dy << trans.dh << trans.da << endl;
-        gen.createTraj(trans.dx/factor, trans.dy/factor, trans.dh/factor, trans.da/factor);
-		
-     	gen.createCmd();
-        envoieCmd();
-    }
+	double factor = 15; // magic factor to slow down the moves
+
+	ROS_DEBUG("dx: [%f]", trans.dx);
+	ROS_DEBUG("dy: [%f]", trans.dy);
+	ROS_DEBUG("da: [%f]", trans.da);
+	ROS_DEBUG("dh: [%f]", trans.dh);
+	
+	cout << "increments : "<<trans.dx << trans.dy << trans.dh << trans.da << endl;
+	
+	// use the Methods from the class GeneTraj to generate the move the hexapod
+	gen.createTraj(trans.dx/factor, trans.dy/factor, trans.dh/factor, trans.da/factor);
+	// create the command message, translation from angle -> motor ref
+	gen.createCmd();
+	//send the command to the motors' board
+	envoieCmd();
+
 }
-
-
+/**
+* @brief   send the message in Cmd to the low level motors' board
+* @param   void
+* @return  void
+*/
+void  envoieCmd()
+{
+	ROS_DEBUG("ENVOIE SEQUENCE");
+	hexapode_v2::sequence_moteur seq_srv;
+	// set the message 
+	seq_srv.request.sequence = gen.getCmd();
+	seq_srv.request.dim = seq_srv.request.sequence.size()+2;
+	// call the service 
+	pclient->call(seq_srv);
+}
+/**
+* @brief   NOT USED YET
+* @param   ROS message of type etat_robot 
+* @return  void
+*/
 void ecouteEtatRobot(const hexapode_v2::etat_robot etat_robot)
 {
-    //etat=etat_robot.is_ok;
 }
+
+//======================================================================
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "generationtrajectoire");
-	if (argc > 1){
-		if (0 == strcmp(argv[1], "0")){
-			gen.initRobot1();
+	ros::init(argc, argv, "generationtrajectoire"); // initialise the node 
+	if (argc > 1){ // if an argument is given when the node is run from the shell or a launch file
+		if (0 == strcmp(argv[1], "0")){ // if the first argument is equal to 0
+			gen.initRobot1(); // set small hexapode 
 		}
 		else{
-			gen.initRobot2();
+			gen.initRobot2();// set big hexapode 
 		}
 	}
-	else{
-		gen.initRobot1();
+	else{ // by default set big hexapod
+		gen.initRobot2();
 	}
-	ros::NodeHandle n;
 	
+	
+	ros::NodeHandle n;
+	// create the client to trigger the moteur_sequence service
 	ros::ServiceClient client = n.serviceClient<hexapode_v2::sequence_moteur>("sequence_");
-    ros::Subscriber trans_sub = n.subscribe("translation", 1000, ecouteTranslation);
-    ros::Subscriber etat_sub = n.subscribe("etat_robot", 1000, ecouteEtatRobot);
 	pclient = &client;
+	
+	// create 2 subscurber 
+    ros::Subscriber trans_sub = n.subscribe("translation", 1000, ecouteTranslation);
+    // not used yet
+    ros::Subscriber etat_sub = n.subscribe("etat_robot", 1000, ecouteEtatRobot);
+    
+	//ROS spin, the node wait there and trigger the subscruber at regular intervals
     ros::spin();
+    
     return 0;
-
 }
 
 
-void  envoieCmd()
-{
 
-	ROS_DEBUG("ENVOIE SEQUENCE");
-	hexapode_v2::sequence_moteur seq_srv;
-	seq_srv.request.sequence = gen.getCmd();
-	//cout << gen.getCmd();
-	seq_srv.request.dim = seq_srv.request.sequence.size()+2;
-	pclient->call(seq_srv);
-}
 
 
 

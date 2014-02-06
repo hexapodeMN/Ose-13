@@ -1,7 +1,8 @@
 /**
 * @file     zhrobot.hpp
 * @brief    Classes en methods from zhrobot 
-* @details  Describe joint and legs from a robot, propose an inverse kinematic model
+* @details  Describe joint and legs from a robot, propose an inverse 
+* 			kinematic model
 * @author   caesarhao@gmail.com
 * @copy		Ecole des Mines de Nantes
 * @date     2014-02-05
@@ -18,7 +19,7 @@
 namespace zhrobot{
 
 
-	// defintion of the Pi constant instead of using cmath.h
+	// defintion of the Pi constant instead of using math.h
 	#define PI	(3.1415926)
 	
 	// definition of custom types
@@ -45,9 +46,11 @@ namespace zhrobot{
 	* @class	Link
 	* @brief   describe a Link in the robot's leg
 	* 
-	* It describe the type of joint plus geometric parameters to describe the transformation 
-	* from one joint to the next in the robot's leg. 
-	* The transformation should use Denavit-Hartenberg parameters but there has been a notation missuse
+	* It describe the type of joint plus geometric parameters to 
+	* describe the transformation from one joint to the next in 
+	* the robot's leg. 
+	* The transformation should use Denavit-Hartenberg parameters 
+	* but there has been a notation missuse
 	*/
 	class Link{
 		private:
@@ -56,9 +59,11 @@ namespace zhrobot{
 			double a; //distance along x_i-1
 			double alpha; //rotation around x_i-1
 			JointType jt; // joint type either prismatic or revolutive
-			dMatrix A; // transformation matrix of the joint according to the Link parameters 
+			dMatrix A; // transformation matrix of the joint 
+			           //according to the Link parameters 
 			/** 
-			* @brief   compute the transformation matrix of the joint according to the Link parameters (private)
+			* @brief   compute the transformation matrix of the joint 
+			* 		according to the Link parameters (private)
 			* @param   none uses the attribute from Link
 			* @return  void
 			*/
@@ -98,10 +103,12 @@ namespace zhrobot{
 		private:
 			int linknum; //number of Link
 			class Link *links; // list of Links
-			dMatrix H; //transformation matrix from end-effector (ie end of the leg) to the base frame of the robot
+			dMatrix H; //transformation matrix from end-effector 
+					//(ie end of the leg) to the base frame of the robot
 			
 			/**
-			 * @brief compute the transformation matrix for the whole Robot/leg (private)
+			 * @brief compute the transformation matrix for 
+			 * 			the whole Robot/leg (private)
 			 */
 			void calcH();
 			
@@ -153,14 +160,16 @@ namespace zhrobot{
 			 
 			 
 			/**
-			 * @brief fills in the Link if a Robot/leg as been created without Links
+			 * @brief fills in the Link if a Robot/leg as been created 
+			 * without Links
 			 * 
 			 * comment it may be simpler tu suppress the empty constructor
 	 		 */
 			void setLinks(Link _links[], int num); 
 			/**
 			 * @brief get the initial cartesian position of the end effector
-			 * @param src a Vector of the end effector position in the end effector frame, src always equals [0 0 0 1]'
+			 * @param src a Vector of the end effector position in 
+			 * 		the end effector frame, src always equals [0 0 0 1]'
 			 * @return a vector [x y z 1]' in the 0-frame
 	 		 */
 			dVector getDestCoord(dVector &src);

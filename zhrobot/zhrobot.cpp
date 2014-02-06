@@ -100,7 +100,8 @@ namespace zhrobot
 	// Methods for Link objects
 	
 	/** 
-	* @brief   compute the transformation matrix of the joint according to the Link parameters (private)
+	* @brief   compute the transformation matrix of the joint according
+	* 			 to the Link parameters (private)
 	* @param   none uses the attribute from Link
 	* @return  void
 	*/
@@ -237,7 +238,8 @@ namespace zhrobot
 	
 	/**
 	 * @brief get the initial cartesian position of the end effector
-	 * @param src a Vector of the end effector position in the end effector frame, src always equals [0 0 0 1]'
+	 * @param src a Vector of the end effector position in 
+	 * 			the end effector frame, src always equals [0 0 0 1]'
 	 * @return a vector [x y z 1]' in the 0-frame
  	 */
 	dVector Robot::getDestCoord(dVector &src){
