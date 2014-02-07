@@ -509,11 +509,13 @@ void GeneTraj::calcNextPosition(int robotNum){
 void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dBetaA){
 	int i = 0, j = 0;
 	move_etat met = calcMoveType(dBetaX,dBetaY,dBetaZ, dBetaA);
+	/*  try to avoid bouncy transitions
 	if (met != metat){// si le type de mouvement est different, le changer.
 		retablirAngles();
 		metat = met;
 		retat = E_ROBOT_PARALLEL;
 	}
+	*/
 	switch (retat){
 		case E_ROBOT_PARALLEL: // 
 			switch(metat){
@@ -533,6 +535,12 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 			}
 			break;
 		case E_ROBOT_LEFT_UP: // 0,,2,4 work
+		//  added for symmetry
+			betaX += dBetaX;
+			betaY += dBetaY;
+			betaA += dBetaA;
+			break;
+		// ----	
 		case E_ROBOT_RIGHT_UP: // 1,3,5 work
 			betaX += dBetaX;
 			betaY += dBetaY;
@@ -541,9 +549,10 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 	}
 	for (i = 0; i<6;i++){
 		calcNextPosition(i); // calculer la position prochaine pour chaque patte.
-		printValarray(dstCoor[i]);
+		// discar shell output
+		//printValarray(dstCoor[i]);
 		vangles[i] = rbs[i].invertCoord(dstCoor[i]);
-		printValarray(vangles[i]);
+		//printValarray(vangles[i]);
 		for (j = 0; j < 3; j++){
 			vMoteur[i][j] = transAngletoNum(i, j, vangles[i][1+j]);	
 		}
