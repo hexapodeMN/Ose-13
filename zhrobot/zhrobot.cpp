@@ -6,12 +6,13 @@
 * @copy		Ecole des Mines de Nantes
 * @date     2014-02-05
 */
+
 #include <iostream>
 #include "zhrobot.hpp"
 
 
-namespace zhrobot
-{
+namespace zhrobot{
+	
 	/** 
 	* @brief   print the value of a vector in the shell
 	* @param   dVector& vector 
@@ -21,6 +22,7 @@ namespace zhrobot
 	{ //ecrit dans la console les valeurs d'un vecteur
 	    for (int i=0; i<va.size(); i++) {
 	        std::cout << va[i] << ' ';
+	    
 		}
 		std::cout <<std::endl;
 	}
@@ -253,7 +255,7 @@ namespace zhrobot
 	void Robot::calcH(){
 		// H is the transforamtion matrix for the Robot/leg 
 		H.unit();
-		for (int i = 0; i < linknum; i++)
+		for (int i = 0; i < linknum; i++){
 			//compute the transformation matrix of the Robot/leg by multiplying the transforamtion matrices from all Links
 			// the order is good, so that H transform an end effector coordinate in a 0-frame coordinate
 			H *= links[i].getA(); 
@@ -305,7 +307,7 @@ namespace zhrobot
 // -------------------------------	
 
 		
-	}
+}
 	
 	// A METHODE FOR THE DIRECT KINEMATIC MAY BE USEFUL
 };

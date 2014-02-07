@@ -11,7 +11,7 @@
 #ifndef _ZH_ROBOT_H_
 #define _ZH_ROBOT_H_
 
-/dependecies
+//dependecies
 #include "matclpro/cmatrix"
 
 
