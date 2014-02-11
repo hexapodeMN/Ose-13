@@ -3,12 +3,14 @@
  #include <signal.h>
  #include <termios.h>
  #include <stdio.h>
+ #include <iostream>
 
  #define KEYCODE_UP 0x41
  #define KEYCODE_LEFT 0x44
  #define KEYCODE_DOWN 0x42
  #define KEYCODE_RIGHT 0x43
 
+using namespace std ;
 
  class keyListener
  {
@@ -168,6 +170,8 @@
      trans.dy = dy;
      trans.da = da;
      trans.dh = dh;
+     
+
 
         ROS_DEBUG("dx: [%f]", trans.dx);
         ROS_DEBUG("dy: [%f]", trans.dy);
