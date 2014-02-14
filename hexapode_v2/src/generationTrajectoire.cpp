@@ -139,7 +139,7 @@ class GeneTraj
 		void transition();
 		bool transition_ok = false;
 		bool new_move = false;
-		int yinterpol;
+		int interpol;
 		int  increment;
  };
 
@@ -445,30 +445,26 @@ void GeneTraj::calcNextPosition(int robotNum){
 			// factor is 'a' coefficient in z = a*y^2 + C
 			factor = -(STEP_UP/(MAX_Y*MAX_Y));
 			// compute y at the current position from previous command, because we have no feedback from motors
-			
 			y = MAX_Y*cos(betaY);
-			
-			
-			
 			///cout << sy<<" "<<factor*cz*cz+C<<endl;
 			if(new_move){
 				cout<<"init new move"<<endl;
-				yinterpol= 0;
+				interpol= 0;
 				increment =0;
 				new_move=false;
 			}
 			if(increment<161){
 				cout<<"interpolation"<<endl;
-				yinterpol = (floor(increment/6)+1)*MAX_Y/27; // dégueulasse
+				interpol = (floor(increment/6)+1)*MAX_Y/27; // dégueulasse
 				increment ++;
-				cout<<"yinterpol "<<yinterpol<<endl;
+				cout<<"interpol "<<interpol<<endl;
 				if ((robotNum%2) != 0){ // 1 3 5
-					dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+yinterpol;
+					dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+interpol;
 					
 					dstCoor[robotNum][2] = factor*y*y+C;
 				}
 				else{ // 0 2 4
-					dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-yinterpol;
+					dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-interpol;
 					
 					dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
 				}
@@ -509,25 +505,48 @@ void GeneTraj::calcNextPosition(int robotNum){
 			factor = -(STEP_UP/(MAX_X*MAX_X));
 			// compute x at the current position, because we have no feedback from motors
 			x = MAX_X*cos(betaX);
-			///cout<<x<<" "<<factor*(x*x)+C<<endl;
-			if (sin(betaX) > 0){
+			if(new_move){
+				cout<<"init new move"<<endl;
+				interpol= 0;
+				increment =0;
+				new_move=false;
+			}
+			if(increment<161){
+				cout<<"interpolation"<<endl;
+				interpol = (floor(increment/6)+1)*MAX_X/27; // dégueulasse
+				increment ++;
+				cout<<"interpol "<<interpol<<endl;
 				if ((robotNum%2) != 0){ // 1 3 5
-					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] + x;
-					dstCoor[robotNum][2] = factor*(x*x)+C;
+					dstCoor[robotNum][0] = dstCoorStand[robotNum][0]+interpol;
+					
+					dstCoor[robotNum][2] = factor*x*x+C;
 				}
 				else{ // 0 2 4
-					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] - x;
-					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+					dstCoor[robotNum][0] = dstCoorStand[robotNum][0]-interpol;
+					
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
 				}
 			}
-			else{ // cos(betaX) < 0
-				if ((robotNum%2) != 0){ // 1 3 5
-					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] + x;
-					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+			else{
+				if (sin(betaX) > 0){
+					if ((robotNum%2) != 0){ // 1 3 5
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0] -x;
+						dstCoor[robotNum][2] = factor*(x*x)+C;
+					}
+					else{ // 0 2 4
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0] + x;
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+					}
 				}
-				else{ // 0 2 4
-					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] - x;
-					dstCoor[robotNum][2] = factor*(x*x)+C;
+				else{ // cos(betaX) < 0
+					if ((robotNum%2) != 0){ // 1 3 5
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0] -x;
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+					}
+					else{ // 0 2 4
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0] +x;
+						dstCoor[robotNum][2] = factor*(x*x)+C;
+					}
 				}
 			}
 			break;
