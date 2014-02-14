@@ -448,26 +448,44 @@ void GeneTraj::calcNextPosition(int robotNum){
 			y = MAX_Y*cos(betaY);
 			///cout << sy<<" "<<factor*cz*cz+C<<endl;
 			if(new_move){
-				cout<<"init new move"<<endl;
+				cout<<"init new move y"<<endl;
 				interpol= 0;
 				increment =0;
 				new_move=false;
 			}
 			if(increment<161){
-				cout<<"interpolation"<<endl;
-				interpol = (floor(increment/6)+1)*MAX_Y/27; // dégueulasse
-				increment ++;
-				cout<<"interpol "<<interpol<<endl;
-				if ((robotNum%2) != 0){ // 1 3 5
-					dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+interpol;
-					
-					dstCoor[robotNum][2] = factor*y*y+C;
+				if(sin(betaY) >0){
+					cout<<"interpolation y +"<<endl;
+					interpol = (floor(increment/6)+1)*MAX_Y/27; // dégueulasse
+					increment ++;
+					cout<<"interpol "<<interpol<<endl;
+					if ((robotNum%2) != 0){ // 1 3 5
+						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+interpol;
+						
+						dstCoor[robotNum][2] = factor*y*y+C;
+					}
+					else{ // 0 2 4
+						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-interpol;
+						
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
+					}
 				}
-				else{ // 0 2 4
-					dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-interpol;
-					
-					dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
-				}
+				else{
+					cout<<"interpolation y -"<<endl;
+					interpol = (floor(increment/6)+1)*MAX_Y/27; // dégueulasse
+					increment ++;
+					cout<<"interpol "<<interpol<<endl;
+					if ((robotNum%2) != 0){ // 1 3 5
+						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+interpol;
+						
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
+					}
+					else{ // 0 2 4
+						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-interpol;
+						
+						dstCoor[robotNum][2] = factor*y*y+C;
+					}
+				}		
 			}
 			else{
 				i=0;
@@ -506,26 +524,45 @@ void GeneTraj::calcNextPosition(int robotNum){
 			// compute x at the current position, because we have no feedback from motors
 			x = MAX_X*cos(betaX);
 			if(new_move){
-				cout<<"init new move"<<endl;
+				cout<<"init new move x"<<endl;
 				interpol= 0;
 				increment =0;
 				new_move=false;
 			}
 			if(increment<161){
-				cout<<"interpolation"<<endl;
-				interpol = (floor(increment/6)+1)*MAX_X/27; // dégueulasse
-				increment ++;
-				cout<<"interpol "<<interpol<<endl;
-				if ((robotNum%2) != 0){ // 1 3 5
-					dstCoor[robotNum][0] = dstCoorStand[robotNum][0]+interpol;
-					
-					dstCoor[robotNum][2] = factor*x*x+C;
+				if(sin(betaX)>0){ 	
+					cout<<"interpolation x +"<<endl;
+					interpol = (floor(increment/6)+1)*MAX_X/27; // dégueulasse
+					increment ++;
+					cout<<"interpol "<<interpol<<endl;
+					if ((robotNum%2) != 0){ // 1 3 5
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]+interpol;
+						
+						dstCoor[robotNum][2] = factor*x*x+C;
+					}
+					else{ // 0 2 4
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]-interpol;
+						
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
+					}
 				}
-				else{ // 0 2 4
-					dstCoor[robotNum][0] = dstCoorStand[robotNum][0]-interpol;
-					
-					dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
+				else{
+					cout<<"interpolation x -"<<endl;
+					interpol = (floor(increment/6)+1)*MAX_X/27; // dégueulasse
+					increment ++;
+					cout<<"interpol "<<interpol<<endl;
+					if ((robotNum%2) != 0){ // 1 3 5
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]+interpol;
+						
+						dstCoor[robotNum][2] =dstCoorStand[robotNum][2] ; 
+					}
+					else{ // 0 2 4
+						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]-interpol;
+						
+						dstCoor[robotNum][2] =factor*x*x+C; 
+					}				
 				}
+				
 			}
 			else{
 				if (sin(betaX) > 0){
@@ -563,30 +600,53 @@ void GeneTraj::calcNextPosition(int robotNum){
 			double angleNorm = rbs[robotNum].getLink(0).getParaTheta();
 			double angle;
 			if(new_move){
-				cout<<"init new move"<<endl;
+				cout<<"init new move rot"<<endl;
 				interpol= 0;
 				increment =0;
 				new_move=false;
 			}
-			if(increment<161){
-				cout<<"interpolation"<<endl;
-				interpol = (floor(increment/6)+1)*MAX_A*100/(27*100); // dégueulasse
-				increment ++;
-				cout<<"interpol "<<interpol<<" z  "<< factor*x*x+C<<endl;
-				if ((robotNum%2) != 0){ // 1 3 5
-					angle = angleNorm + interpol;
-					dstCoor[robotNum][0] = len*cos(angle);
-					dstCoor[robotNum][1] = len*sin(angle);
-					dstCoor[robotNum][2] = factor*a*a+C;
+			if(increment<161  ){//&& sin(betaA)>0){ //pour anti horaire
+				if(sin(betaA)>0){ //anti-horaire
+					cout<<"interpolation rot f"<<endl;
+					cout<<"sinbetaA "<<sin(betaA)<<endl;
+					interpol = (floor(increment/6)+1)*MAX_A/27; // dégueulasse
+					increment ++;
+					cout<<"interpol "<<interpol<<" z  "<< factor*a*a+C<<endl;
+					if ((robotNum%2) != 0){ // 1 3 5
+						angle = angleNorm + interpol;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = factor*a*a+C;
+					}
+					else{ // 0 2 4
+						angle = angleNorm - interpol;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];	
+					}
 				}
-				else{ // 0 2 4
-					angle = angleNorm -interpol;
-					dstCoor[robotNum][0] = len*cos(angle);
-					dstCoor[robotNum][1] = len*sin(angle);
-					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];	
-				}
-			}
+				else{//horaire
+					cout<<"interpolation rot j"<<endl;
+					cout<<"sinbetaA "<<sin(betaA)<<endl;
+					interpol = (floor(increment/6)+1)*MAX_A/27; // dégueulasse
+					increment ++;
+					cout<<"interpol "<<interpol<<" z  "<< factor*a*a+C<<endl;
+					if ((robotNum%2) != 0){ // 1 3 5
+						angle = angleNorm + interpol;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];	
+					}
+					else{ // 0 2 4
+						angle = angleNorm -interpol;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = factor*a*a+C;
+					}	
+				}	
+		    }
 			else{
+				cout<<"normal rot"<<endl;
 				if (sin(betaA) > 0){
 					if ((robotNum%2) != 0){ // 1 3 5
 					
