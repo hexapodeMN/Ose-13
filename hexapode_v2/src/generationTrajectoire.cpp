@@ -139,7 +139,7 @@ class GeneTraj
 		void transition();
 		bool transition_ok = false;
 		bool new_move = false;
-		int interpol;
+		double interpol;
 		int  increment;
  };
 
@@ -555,47 +555,72 @@ void GeneTraj::calcNextPosition(int robotNum){
 			// factor is the coefficient so that z = factor*a^2 + C
 			factor = -(STEP_UP/(MAX_A*MAX_A));
 			
-			a = MAX_A*sin(betaA);
+			a = MAX_A*cos(betaA);
 			// len = sqrt(x^2+y^2).
 			double len = sqrt(dstCoorStand[robotNum][0]*dstCoorStand[robotNum][0] + 
 				dstCoorStand[robotNum][1]*dstCoorStand[robotNum][1]);
 			// get the angle for the physical direction of the leg wrt to the base
 			double angleNorm = rbs[robotNum].getLink(0).getParaTheta();
 			double angle;
-			
-			if (cos(betaA) > 0){
+			if(new_move){
+				cout<<"init new move"<<endl;
+				interpol= 0;
+				increment =0;
+				new_move=false;
+			}
+			if(increment<161){
+				cout<<"interpolation"<<endl;
+				interpol = (floor(increment/6)+1)*MAX_A*100/(27*100); // dégueulasse
+				increment ++;
+				cout<<"interpol "<<interpol<<" z  "<< factor*x*x+C<<endl;
 				if ((robotNum%2) != 0){ // 1 3 5
-				
-					angle = angleNorm + a;
+					angle = angleNorm + interpol;
 					dstCoor[robotNum][0] = len*cos(angle);
 					dstCoor[robotNum][1] = len*sin(angle);
-					dstCoor[robotNum][2] = factor*(a*a)+C;
+					dstCoor[robotNum][2] = factor*a*a+C;
+				}
+				else{ // 0 2 4
+					angle = angleNorm -interpol;
+					dstCoor[robotNum][0] = len*cos(angle);
+					dstCoor[robotNum][1] = len*sin(angle);
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];	
+				}
+			}
+			else{
+				if (sin(betaA) > 0){
+					if ((robotNum%2) != 0){ // 1 3 5
 					
+						angle = angleNorm - a;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = factor*(a*a)+C;
+						
+					}
+					else{ // 0 2 4
+					
+						angle = angleNorm + a;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+					}
 				}
-				else{ // 0 2 4
-				
-					angle = angleNorm - a;
-					dstCoor[robotNum][0] = len*cos(angle);
-					dstCoor[robotNum][1] = len*sin(angle);
-					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+				else{
+					if ((robotNum%2) != 0){ // 1 3 5
+					
+						angle = angleNorm - a;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+					}
+					else{ // 0 2 4
+					
+						angle = angleNorm + a;
+						dstCoor[robotNum][0] = len*cos(angle);
+						dstCoor[robotNum][1] = len*sin(angle);
+						dstCoor[robotNum][2] = factor*(a*a)+C;
+					}
 				}
-			}
-			else{//cos(betaA) < 0
-				if ((robotNum%2) != 0){ // 1 3 5
-				
-					angle = angleNorm + a;
-					dstCoor[robotNum][0] = len*cos(angle);
-					dstCoor[robotNum][1] = len*sin(angle);
-					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
-				}
-				else{ // 0 2 4
-				
-					angle = angleNorm - a;
-					dstCoor[robotNum][0] = len*cos(angle);
-					dstCoor[robotNum][1] = len*sin(angle);
-					dstCoor[robotNum][2] = factor*(a*a)+C;
-				}
-			}
+			}	
 			break;
 	}
 }
@@ -608,7 +633,7 @@ void GeneTraj::calcNextPosition(int robotNum){
 // TODO PB with 0 1 2
 void  GeneTraj::transition(){
 	int i, j;
-	int delta =70;
+	int delta =50;
 	bool temp = true ;
     // default starting angle position
 	int moteurCible[3] ;
@@ -618,12 +643,12 @@ void  GeneTraj::transition(){
 	
 	for (i = 0; i<6;i++){ // legs	
 		for (j = 0; j < 3; j++){ // motors
-			if(  moteurCible[j] -vMoteur[i][j] > 140 ){
+			if(  moteurCible[j] -vMoteur[i][j] > 100 ){
 				vMoteur[i][j] += delta;
 				temp = false ;
 				///cout<<"patte "<<i<<" moteur "<<j+1<< " + petit : "<<vMoteur[i][j] <<"  "<<moteurCible[j] <<endl;
 			}			
-			else if(moteurCible[j] -vMoteur[i][j]< - 140){
+			else if(moteurCible[j] -vMoteur[i][j]< - 100){
 				vMoteur[i][j] -= delta;
 				temp = false ;
 				///cout<<"patte "<<i<<" moteur "<<j+1<<" + grand : "<<vMoteur[i][j] <<"  "<< moteurCible[j] <<endl;
