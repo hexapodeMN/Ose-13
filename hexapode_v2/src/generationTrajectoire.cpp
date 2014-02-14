@@ -447,125 +447,100 @@ void GeneTraj::calcNextPosition(int robotNum){
 			// compute y at the current position from previous command, because we have no feedback from motors
 			y = MAX_Y*cos(betaY);
 			///cout << sy<<" "<<factor*cz*cz+C<<endl;
-			if(new_move){
-				cout<<"init new move y"<<endl;
+			if(new_move){ //if change of move type, initialize the small step's parameters
 				interpol= 0;
 				increment =0;
 				new_move=false;
 			}
-			if(increment<161){
-				if(sin(betaY) >0){
-					cout<<"interpolation y +"<<endl;
-					interpol = (floor(increment/6)+1)*MAX_Y/27; // dégueulasse
+			if(increment<161){ //small step
+				if(sin(betaY) >0){ //y +
+					interpol = (floor(increment/6)+1)*MAX_Y/27; 
 					increment ++;
-					cout<<"interpol "<<interpol<<endl;
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+interpol;
-						
 						dstCoor[robotNum][2] = factor*y*y+C;
 					}
 					else{ // 0 2 4
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-interpol;
-						
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
 					}
 				}
-				else{
-					cout<<"interpolation y -"<<endl;
-					interpol = (floor(increment/6)+1)*MAX_Y/27; // dégueulasse
+				else{ //y -
+					interpol = (floor(increment/6)+1)*MAX_Y/27; 
 					increment ++;
-					cout<<"interpol "<<interpol<<endl;
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+interpol;
-						
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
 					}
 					else{ // 0 2 4
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-interpol;
-						
 						dstCoor[robotNum][2] = factor*y*y+C;
 					}
 				}		
 			}
-			else{
-				i=0;
-				cout<<"normal"<<endl;
-				if (sin(betaY) > 0){// TODO check test
+			else{ //normal step
+				if (sin(betaY) > 0){//y +
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-y;
-						
 						dstCoor[robotNum][2] = factor*y*y+C;
 					}
 					else{ // 0 2 4
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]+y;
-						
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
 					}
 				}
-				else{ // sin(betaY) < 0
+				else{ // sin(betaY) < 0, y -
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-y ;
-						
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
 					}
 					else{ // 0 2 4 
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1] +y;
-						
 						dstCoor[robotNum][2] = factor*y*y+C;
 					}
 				}
 		    } 
 			break;
 			
-			
 		case E_MOVE_HORIZONTAL: 
 			// factor is 'a' coefficient in z = a*x^2 + C
 			factor = -(STEP_UP/(MAX_X*MAX_X));
 			// compute x at the current position, because we have no feedback from motors
 			x = MAX_X*cos(betaX);
-			if(new_move){
-				cout<<"init new move x"<<endl;
+			if(new_move){ //if change of move type, initialize the small step's parameters
 				interpol= 0;
 				increment =0;
 				new_move=false;
 			}
-			if(increment<161){
-				if(sin(betaX)>0){ 	
-					cout<<"interpolation x +"<<endl;
-					interpol = (floor(increment/6)+1)*MAX_X/27; // dégueulasse
+			if(increment<161){//small step
+				if(sin(betaX)>0){ // x +
+					interpol = (floor(increment/6)+1)*MAX_X/27;
 					increment ++;
-					cout<<"interpol "<<interpol<<endl;
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]+interpol;
-						
 						dstCoor[robotNum][2] = factor*x*x+C;
 					}
 					else{ // 0 2 4
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]-interpol;
-						
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
 					}
 				}
-				else{
-					cout<<"interpolation x -"<<endl;
-					interpol = (floor(increment/6)+1)*MAX_X/27; // dégueulasse
+				else{// x -
+					interpol = (floor(increment/6)+1)*MAX_X/27; 
 					increment ++;
-					cout<<"interpol "<<interpol<<endl;
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]+interpol;
-						
 						dstCoor[robotNum][2] =dstCoorStand[robotNum][2] ; 
 					}
 					else{ // 0 2 4
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]-interpol;
-						
 						dstCoor[robotNum][2] =factor*x*x+C; 
 					}				
 				}
 				
 			}
-			else{
-				if (sin(betaX) > 0){
+			else{ // normal step
+				if (sin(betaX) > 0){ // x +
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0] -x;
 						dstCoor[robotNum][2] = factor*(x*x)+C;
@@ -575,7 +550,7 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
 					}
 				}
-				else{ // cos(betaX) < 0
+				else{ // sin(betaX) < 0, x-
 					if ((robotNum%2) != 0){ // 1 3 5
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0] -x;
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
@@ -591,7 +566,6 @@ void GeneTraj::calcNextPosition(int robotNum){
 		case E_MOVE_TOURNE: // TODO add comment
 			// factor is the coefficient so that z = factor*a^2 + C
 			factor = -(STEP_UP/(MAX_A*MAX_A));
-			
 			a = MAX_A*cos(betaA);
 			// len = sqrt(x^2+y^2).
 			double len = sqrt(dstCoorStand[robotNum][0]*dstCoorStand[robotNum][0] + 
@@ -599,19 +573,15 @@ void GeneTraj::calcNextPosition(int robotNum){
 			// get the angle for the physical direction of the leg wrt to the base
 			double angleNorm = rbs[robotNum].getLink(0).getParaTheta();
 			double angle;
-			if(new_move){
-				cout<<"init new move rot"<<endl;
+			if(new_move){//if change of move type, initialize the small step's parameters
 				interpol= 0;
 				increment =0;
 				new_move=false;
 			}
-			if(increment<161  ){//&& sin(betaA)>0){ //pour anti horaire
-				if(sin(betaA)>0){ //anti-horaire
-					cout<<"interpolation rot f"<<endl;
-					cout<<"sinbetaA "<<sin(betaA)<<endl;
-					interpol = (floor(increment/6)+1)*MAX_A/27; // dégueulasse
+			if(increment<161  ){ //small step
+				if(sin(betaA)>0){ //rotation anti-trigo
+					interpol = (floor(increment/6)+1)*MAX_A/27; 
 					increment ++;
-					cout<<"interpol "<<interpol<<" z  "<< factor*a*a+C<<endl;
 					if ((robotNum%2) != 0){ // 1 3 5
 						angle = angleNorm + interpol;
 						dstCoor[robotNum][0] = len*cos(angle);
@@ -625,12 +595,9 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];	
 					}
 				}
-				else{//horaire
-					cout<<"interpolation rot j"<<endl;
-					cout<<"sinbetaA "<<sin(betaA)<<endl;
-					interpol = (floor(increment/6)+1)*MAX_A/27; // dégueulasse
+				else{//rotation trigo
+					interpol = (floor(increment/6)+1)*MAX_A/27;
 					increment ++;
-					cout<<"interpol "<<interpol<<" z  "<< factor*a*a+C<<endl;
 					if ((robotNum%2) != 0){ // 1 3 5
 						angle = angleNorm + interpol;
 						dstCoor[robotNum][0] = len*cos(angle);
@@ -645,11 +612,9 @@ void GeneTraj::calcNextPosition(int robotNum){
 					}	
 				}	
 		    }
-			else{
-				cout<<"normal rot"<<endl;
+			else{// normal step
 				if (sin(betaA) > 0){
 					if ((robotNum%2) != 0){ // 1 3 5
-					
 						angle = angleNorm - a;
 						dstCoor[robotNum][0] = len*cos(angle);
 						dstCoor[robotNum][1] = len*sin(angle);
@@ -657,7 +622,6 @@ void GeneTraj::calcNextPosition(int robotNum){
 						
 					}
 					else{ // 0 2 4
-					
 						angle = angleNorm + a;
 						dstCoor[robotNum][0] = len*cos(angle);
 						dstCoor[robotNum][1] = len*sin(angle);
@@ -666,14 +630,12 @@ void GeneTraj::calcNextPosition(int robotNum){
 				}
 				else{
 					if ((robotNum%2) != 0){ // 1 3 5
-					
 						angle = angleNorm - a;
 						dstCoor[robotNum][0] = len*cos(angle);
 						dstCoor[robotNum][1] = len*sin(angle);
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
 					}
 					else{ // 0 2 4
-					
 						angle = angleNorm + a;
 						dstCoor[robotNum][0] = len*cos(angle);
 						dstCoor[robotNum][1] = len*sin(angle);
@@ -715,7 +677,7 @@ void  GeneTraj::transition(){
 			}
 		}
 	}
-	if(temp){
+	if(temp){ //al motors close to targeted position
 		transition_ok = true;
 		cout<<"transition done"<<endl;
 		new_move =true;
@@ -734,18 +696,8 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 	int i = 0, j = 0;
 	move_etat met = calcMoveType(dBetaX,dBetaY,dBetaZ, dBetaA);
 	
-	// if the type of movement changes 	
+	// if the type of movement changes or it's the first loop til the switch on
 	if (met != metat || first_loop==0){	
-		/*
-		// retablirAngles(); // set angles to zero, but dont send the command to motors
-		metat = met;
-		if (first_loop == 0){
-		// cout << "reset init"<< endl;	
-		retablirAngles();
-		retat = E_ROBOT_PARALLEL; // set robot to parallel mode
-		first_loop=1;
-		}
-		/**/ 
 		cout << "transition" <<endl;
 		transition_ok=false;
 		transition();
@@ -755,7 +707,6 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 			retat = E_ROBOT_PARALLEL;
 			metat=met;
 			new_move=true;
-			
 		}
 	}
 	
