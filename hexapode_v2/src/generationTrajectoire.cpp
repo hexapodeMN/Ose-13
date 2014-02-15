@@ -37,7 +37,7 @@
 #include <hexapode_v2/etat_robot.h>
 #include <hexapode_v2/sequence_moteur.h>
 #include "zhrobot.hpp"
-
+#include <geometry_msgs/Twist.h>
 
 
 //------------------------
@@ -137,8 +137,8 @@ class GeneTraj
 		// TODO should be private with getter and setter
 		int first_loop; //to enter first loop in creatTraj 
 		void transition();
-		bool transition_ok = false;
-		bool new_move = false;
+		bool transition_ok ;
+		bool new_move;
 		double interpol;
 		int  increment;
  };
@@ -334,7 +334,8 @@ void GeneTraj::initRobot2(){
 		}
 	}
 	
-	
+	transition_ok = false;
+	new_move = false;
 	first_loop=0;
 	
 }
@@ -432,7 +433,7 @@ int GeneTraj::transAngletoNum(int patteNum, int motorNum, double angle){
 */
 void GeneTraj::calcNextPosition(int robotNum){
 	
-	double a, x, y,i,deltaY,factor;
+	double a, x, y,factor;
 	
 	switch(metat){
 		
@@ -563,7 +564,7 @@ void GeneTraj::calcNextPosition(int robotNum){
 			}
 			break;
 			
-		case E_MOVE_TOURNE: // TODO add comment
+		case E_MOVE_TOURNE: 
 			// factor is the coefficient so that z = factor*a^2 + C
 			factor = -(STEP_UP/(MAX_A*MAX_A));
 			a = MAX_A*cos(betaA);
@@ -619,7 +620,6 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][0] = len*cos(angle);
 						dstCoor[robotNum][1] = len*sin(angle);
 						dstCoor[robotNum][2] = factor*(a*a)+C;
-						
 					}
 					else{ // 0 2 4
 						angle = angleNorm + a;
@@ -844,6 +844,37 @@ void ecouteTranslation(const hexapode_v2::translation trans)
 
 }
 /**
+* @brief   Function triggered by the topic cmd_vel, from navigation package 
+* create the new move for all the legs and send the command to the motors
+* @param   double, double, double, double
+* @return  void
+*/
+void ecouteNavigation(const geometry_msgs::Twist twist)
+{
+	
+	cout<<"navigation !"<<endl;
+     double dx= 0,dy=0,da=0;
+     double pas = 0.3;
+	//transaltion from velocities to increments
+	//really nasty 
+	if( twist.linear.x > 0){ dx =pas;}
+	if( twist.linear.x < 0){ dx =-pas;}
+	if( twist.linear.y > 0){ dy =pas;}
+	if( twist.linear.y < 0){ dy =-pas;}
+	if( twist.angular.z > 0){ da =pas;}
+	if( twist.angular.z < 0){ da =-pas;}
+	cout<<"x "<<dx<<" y "<<dy<<" a "<<da<<endl;
+
+	// use the Methods from the class GeneTraj to generate the move the hexapod
+	gen.createTraj(dx, dy, 0, da);
+	// create the command message, translation from angle -> motor ref
+	gen.createCmd();
+	//send the command to the motors' board
+	envoieCmd();
+
+}
+
+/**
 * @brief   send the message in Cmd to the low level motors' board
 * @param   void
 * @return  void
@@ -894,6 +925,8 @@ int main(int argc, char** argv)
     ros::Subscriber trans_sub = n.subscribe("translation", 1000, ecouteTranslation);
     // not used yet
     ros::Subscriber etat_sub = n.subscribe("etat_robot", 1000, ecouteEtatRobot);
+    
+    ros::Subscriber nav_sub = n.subscribe("cmd_vel", 1000, ecouteNavigation);
     
 	//ROS spin, the node wait there and trigger the subscruber at regular intervals
     ros::spin();
