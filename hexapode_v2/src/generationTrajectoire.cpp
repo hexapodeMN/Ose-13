@@ -142,6 +142,7 @@ class GeneTraj
 		bool new_move;
 		double interpol;
 		int  increment;
+		bool navigation_on ;
  };
 
 //-------------------------
@@ -262,7 +263,7 @@ void GeneTraj::initRobot2(){
  *                     (4)
 */
 	robotType = 1;
-	std::cout<<"Initialisation le grand robot"<<std::endl;
+	std::cout<<"Initialization Big Hexapod"<<std::endl;
 
 	Link ls[]={
 		/**
@@ -334,11 +335,11 @@ void GeneTraj::initRobot2(){
 		vMoteur[i][j] = transAngletoNum(i, j, vangles[i][1+j]);	
 		}
 	}
-	
+	navigation_on = false;
 	transition_ok = false;
 	new_move = false;
 	first_loop=0;
-	
+	std::cout<<"End of initialization"<<std::endl;
 }
 /**
 * @brief   Function to set the type of move
@@ -826,23 +827,39 @@ ros::ServiceClient *pclient = NULL;
 * @return  void
 */
 void ecouteTranslation(const hexapode_v2::translation trans)
-{
-	double factor = 10; // magic factor to slow down the moves
+{	
 
-	ROS_DEBUG("dx: [%f]", trans.dx);
-	ROS_DEBUG("dy: [%f]", trans.dy);
-	ROS_DEBUG("da: [%f]", trans.da);
-	ROS_DEBUG("dh: [%f]", trans.dh);
-	
-	///cout << "increments : "<<trans.dx << trans.dy << trans.dh << trans.da << endl;
-	
-	// use the Methods from the class GeneTraj to generate the move the hexapod
-	gen.createTraj(trans.dx/factor, trans.dy/factor, trans.dh/factor, trans.da/factor);
-	// create the command message, translation from angle -> motor ref
-	gen.createCmd();
-	//send the command to the motors' board
-	envoieCmd();
+	if (trans.dx == 99 && trans.dy == 99 && trans.dh == 99 && trans.da == 99 && gen.navigation_on){
+		// respone to key a; autonomous navigation mode
+		gen.navigation_on = false;
+		cout<<"autonomous navigation stopped "<<endl;
+	}	
+	else if (trans.dx == 99 && trans.dy == 99 && trans.dh == 99 && trans.da == 99 && !gen.navigation_on){
+		// respone to key a; autonomous navigation mode
+		gen.navigation_on = true;
+		cout<<"autonomous navigation started "<<endl;
+	}
 
+	else if(!gen.navigation_on){
+		double factor = 10; // magic factor to slow down the moves
+
+		ROS_DEBUG("dx: [%f]", trans.dx);
+		ROS_DEBUG("dy: [%f]", trans.dy);
+		ROS_DEBUG("da: [%f]", trans.da);
+		ROS_DEBUG("dh: [%f]", trans.dh);
+		
+		///cout << "increments : "<<trans.dx << trans.dy << trans.dh << trans.da << endl;
+		
+		// use the Methods from the class GeneTraj to generate the move the hexapod
+		gen.createTraj(trans.dx/factor, trans.dy/factor, trans.dh/factor, trans.da/factor);
+		// create the command message, translation from angle -> motor ref
+		gen.createCmd();
+		//send the command to the motors' board
+		envoieCmd();
+	}
+	else{
+	cout<<"/!\\ Warning : you are in autonomous mode, switch to manual with 'a' "<<endl;
+	}
 }
 /**
 * @brief   Function triggered by the topic cmd_vel, from navigation package 
@@ -852,27 +869,27 @@ void ecouteTranslation(const hexapode_v2::translation trans)
 */
 void ecouteNavigation(const geometry_msgs::Twist twist)
 {
-	
-	cout<<"navigation !"<<endl;
-     double dx= 0,dy=0,da=0;
-     double pas = 0.3;
-	//transaltion from velocities to increments
-	//really nasty 
-	if( twist.linear.x > 0){ dx =pas;}
-	if( twist.linear.x < 0){ dx =-pas;}
-	if( twist.linear.y > 0){ dy =pas;}
-	if( twist.linear.y < 0){ dy =-pas;}
-	if( twist.angular.z > 0){ da =pas;}
-	if( twist.angular.z < 0){ da =-pas;}
-	cout<<"x "<<dx<<" y "<<dy<<" a "<<da<<endl;
+	if (gen.navigation_on){
+		///cout<<"autonomous navigation !"<<endl;
+		double dx= 0,dy=0,da=0;
+		double pas = 1/15; // to have the same magnitude as commands from the keyboard
+		//transaltion from velocities to increments
+		//really nasty 
+		if( twist.linear.x > 0){ dx =pas;}
+		if( twist.linear.x < 0){ dx =-pas;}
+		if( twist.linear.y > 0){ dy =pas;}
+		if( twist.linear.y < 0){ dy =-pas;}
+		if( twist.angular.z > 0){ da =pas;}
+		if( twist.angular.z < 0){ da =-pas;}
+		///cout<<"x "<<dx<<" y "<<dy<<" a "<<da<<endl;
 
-	// use the Methods from the class GeneTraj to generate the move the hexapod
-	gen.createTraj(dx, dy, 0, da);
-	// create the command message, translation from angle -> motor ref
-	gen.createCmd();
-	//send the command to the motors' board
-	envoieCmd();
-
+		// use the Methods from the class GeneTraj to generate the move the hexapod
+		gen.createTraj(dx, dy, 0, da);
+		// create the command message, translation from angle -> motor ref
+		gen.createCmd();
+		//send the command to the motors' board
+		envoieCmd();
+    }
 }
 
 /**
@@ -918,7 +935,7 @@ int main(int argc, char** argv)
 	
 	
 	ros::NodeHandle n;
-	// create the client to trigger the moteur_sequence service
+	// create the client to trigger the sequence_moteur service
 	ros::ServiceClient client = n.serviceClient<hexapode_v2::sequence_moteur>("sequence_");
 	pclient = &client;
 	

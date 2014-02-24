@@ -3,12 +3,14 @@
  #include <signal.h>
  #include <termios.h>
  #include <stdio.h>
+ #include <iostream>
 
  #define KEYCODE_UP 0x41
  #define KEYCODE_LEFT 0x44
  #define KEYCODE_DOWN 0x42
  #define KEYCODE_RIGHT 0x43
 
+using namespace std ;
 
  class keyListener
  {
@@ -158,9 +160,20 @@
          da += -1;
          dirty = true;
          break;
-
+	  case 'a':
+	     ROS_DEBUG("navigation");
+         dx += 99;
+         dy += 99;
+         dh += 99;
+         da += 99;
+         cout<<"autonomous hot-key"<<endl;
+         dirty = true;
+         break;
+      default :
+		 dirty = false; // will not publish into topic if no interesting key is hit
+         break ;
      }
-
+ 
 
      hexapode_v2::translation trans;
 
@@ -168,6 +181,8 @@
      trans.dy = dy;
      trans.da = da;
      trans.dh = dh;
+     
+     ///cout << "increments : "<<dx << dy <<dh << da << endl;
 
         ROS_DEBUG("dx: [%f]", trans.dx);
         ROS_DEBUG("dy: [%f]", trans.dy);

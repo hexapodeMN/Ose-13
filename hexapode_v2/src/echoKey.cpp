@@ -1,9 +1,7 @@
 #include "ros/ros.h"
 #include "hexapode_v2/translation.h"
 
-/**
- * This tutorial demonstrates simple receipt of messages over the ROS system.
- */
+
 void chatterCallback(const hexapode_v2::translation trans)
 {
   ROS_INFO("I heard: [dx: %f dy: %f dh: %f da: %f]", trans.dx, trans.dy, trans.dh, trans.da);
