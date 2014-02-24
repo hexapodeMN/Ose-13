@@ -37,10 +37,16 @@
 #include <hexapode_v2/etat_robot.h>
 #include <hexapode_v2/sequence_moteur.h>
 #include "zhrobot.hpp"
+<<<<<<< HEAD
 #include <geometry_msgs/Twist.h>
 
 
 
+=======
+
+
+
+>>>>>>> master
 //------------------------
 // should be in an header file, but not sure how to use it in ROS
 // some hints may in there
@@ -138,11 +144,15 @@ class GeneTraj
 		// TODO should be private with getter and setter
 		int first_loop; //to enter first loop in creatTraj 
 		void transition();
+<<<<<<< HEAD
 		bool transition_ok ;
 		bool new_move;
 		double interpol;
 		int  increment;
 		bool navigation_on ;
+=======
+		bool transition_ok = false;
+>>>>>>> master
  };
 
 //-------------------------
@@ -335,11 +345,18 @@ void GeneTraj::initRobot2(){
 		vMoteur[i][j] = transAngletoNum(i, j, vangles[i][1+j]);	
 		}
 	}
+<<<<<<< HEAD
 	navigation_on = false;
 	transition_ok = false;
 	new_move = false;
 	first_loop=0;
 	std::cout<<"End of initialization"<<std::endl;
+=======
+	
+	
+	first_loop=0;
+	
+>>>>>>> master
 }
 /**
 * @brief   Function to set the type of move
@@ -369,9 +386,15 @@ void GeneTraj::retablirAngles(){
 	int i ;
 	for (i = 0; i < 6; i++){
 		
+<<<<<<< HEAD
 		rbs[i].setQ(1, 0); // theta1=0
 		rbs[i].setQ(2, 0); // theta2=0
 		rbs[i].setQ(3, -PI/2); // q3=0
+=======
+		rbs[i].setQ(1, 0); // theta1
+		rbs[i].setQ(2, 0); // theta2
+		rbs[i].setQ(3, -PI/2); // q3
+>>>>>>> master
 		
 		//current and final coordinate are the same -> no move
 		dstCoor[i] = rbs[i].getDestCoord(srcCoor); 
@@ -435,7 +458,11 @@ int GeneTraj::transAngletoNum(int patteNum, int motorNum, double angle){
 */
 void GeneTraj::calcNextPosition(int robotNum){
 	
+<<<<<<< HEAD
 	double a, x, y,factor;
+=======
+	double a, x, y,yz, factor;
+>>>>>>> master
 	
 	switch(metat){
 		
@@ -447,6 +474,7 @@ void GeneTraj::calcNextPosition(int robotNum){
 		case E_MOVE_VERTICAL:
 			// factor is 'a' coefficient in z = a*y^2 + C
 			factor = -(STEP_UP/(MAX_Y*MAX_Y));
+<<<<<<< HEAD
 			// compute y at the current position from previous command, because we have no feedback from motors
 			y = MAX_Y*cos(betaY);
 			///cout << sy<<" "<<factor*cz*cz+C<<endl;
@@ -467,6 +495,21 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1]-interpol;
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2] ;
 					}
+=======
+			// compute y at the current position, because we have no feedback from motors
+			y = MAX_Y*sin(betaY);
+			yz = MAX_Y*cos(betaY);
+			if (cos(betaY) > 0){// TODO check test
+				if ((robotNum%2) != 0){ // 1 3 5
+					dstCoor[robotNum][1] = dstCoorStand[robotNum][1] + y;
+					
+					dstCoor[robotNum][2] = factor*(y*y)+C;
+				}
+				else{ // 0 2 4
+					dstCoor[robotNum][1] = dstCoorStand[robotNum][1] - y;
+					
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+>>>>>>> master
 				}
 				else{ //y -
 					interpol = (floor(increment/6)+1)*MAX_Y/27; 
@@ -481,6 +524,7 @@ void GeneTraj::calcNextPosition(int robotNum){
 					}
 				}		
 			}
+<<<<<<< HEAD
 			else{ //normal step
 				if (sin(betaY) > 0){//y +
 					if ((robotNum%2) != 0){ // 1 3 5
@@ -501,14 +545,31 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][1] = dstCoorStand[robotNum][1] +y;
 						dstCoor[robotNum][2] = factor*y*y+C;
 					}
+=======
+			else{ // cos(betaY) < 0
+				if ((robotNum%2) != 0){ // 1 3 5
+					dstCoor[robotNum][1] = dstCoorStand[robotNum][1] + y;
+					
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+				}
+				else{ // 0 2 4 
+					dstCoor[robotNum][1] = dstCoorStand[robotNum][1] - y;
+					
+					dstCoor[robotNum][2] = factor*(y*y)+C;
+>>>>>>> master
 				}
 		    } 
 			break;
 			
+<<<<<<< HEAD
+=======
+			
+>>>>>>> master
 		case E_MOVE_HORIZONTAL: 
 			// factor is 'a' coefficient in z = a*x^2 + C
 			factor = -(STEP_UP/(MAX_X*MAX_X));
 			// compute x at the current position, because we have no feedback from motors
+<<<<<<< HEAD
 			x = MAX_X*cos(betaX);
 			if(new_move){ //if change of move type, initialize the small step's parameters
 				interpol= 0;
@@ -539,9 +600,21 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0]-interpol;
 						dstCoor[robotNum][2] =factor*x*x+C; 
 					}				
+=======
+			x = MAX_X*sin(betaX);
+			if (cos(betaX) > 0){
+				if ((robotNum%2) != 0){ // 1 3 5
+					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] + x;
+					dstCoor[robotNum][2] = factor*(x*x)+C;
+				}
+				else{ // 0 2 4
+					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] - x;
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+>>>>>>> master
 				}
 				
 			}
+<<<<<<< HEAD
 			else{ // normal step
 				if (sin(betaX) > 0){ // x +
 					if ((robotNum%2) != 0){ // 1 3 5
@@ -562,20 +635,39 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][0] = dstCoorStand[robotNum][0] +x;
 						dstCoor[robotNum][2] = factor*(x*x)+C;
 					}
+=======
+			else{ // cos(betaX) < 0
+				if ((robotNum%2) != 0){ // 1 3 5
+					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] + x;
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+				}
+				else{ // 0 2 4
+					dstCoor[robotNum][0] = dstCoorStand[robotNum][0] - x;
+					dstCoor[robotNum][2] = factor*(x*x)+C;
+>>>>>>> master
 				}
 			}
 			break;
 			
+<<<<<<< HEAD
 		case E_MOVE_TOURNE: 
 			// factor is the coefficient so that z = factor*a^2 + C
 			factor = -(STEP_UP/(MAX_A*MAX_A));
 			a = MAX_A*cos(betaA);
+=======
+		case E_MOVE_TOURNE: // TODO add comment
+			// factor is the coefficient so that z = factor*a^2 + C
+			factor = -(STEP_UP/(MAX_A*MAX_A));
+			
+			a = MAX_A*sin(betaA);
+>>>>>>> master
 			// len = sqrt(x^2+y^2).
 			double len = sqrt(dstCoorStand[robotNum][0]*dstCoorStand[robotNum][0] + 
 				dstCoorStand[robotNum][1]*dstCoorStand[robotNum][1]);
 			// get the angle for the physical direction of the leg wrt to the base
 			double angleNorm = rbs[robotNum].getLink(0).getParaTheta();
 			double angle;
+<<<<<<< HEAD
 			if(new_move){//if change of move type, initialize the small step's parameters
 				interpol= 0;
 				increment =0;
@@ -629,6 +721,40 @@ void GeneTraj::calcNextPosition(int robotNum){
 						dstCoor[robotNum][1] = len*sin(angle);
 						dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
 					}
+=======
+			
+			if (cos(betaA) > 0){
+				if ((robotNum%2) != 0){ // 1 3 5
+				
+					angle = angleNorm + a;
+					dstCoor[robotNum][0] = len*cos(angle);
+					dstCoor[robotNum][1] = len*sin(angle);
+					dstCoor[robotNum][2] = factor*(a*a)+C;
+					
+				}
+				else{ // 0 2 4
+				
+					angle = angleNorm - a;
+					dstCoor[robotNum][0] = len*cos(angle);
+					dstCoor[robotNum][1] = len*sin(angle);
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+				}
+			}
+			else{//cos(betaA) < 0
+				if ((robotNum%2) != 0){ // 1 3 5
+				
+					angle = angleNorm + a;
+					dstCoor[robotNum][0] = len*cos(angle);
+					dstCoor[robotNum][1] = len*sin(angle);
+					dstCoor[robotNum][2] = dstCoorStand[robotNum][2];
+				}
+				else{ // 0 2 4
+				
+					angle = angleNorm - a;
+					dstCoor[robotNum][0] = len*cos(angle);
+					dstCoor[robotNum][1] = len*sin(angle);
+					dstCoor[robotNum][2] = factor*(a*a)+C;
+>>>>>>> master
 				}
 				else{
 					if ((robotNum%2) != 0){ // 1 3 5
@@ -649,6 +775,7 @@ void GeneTraj::calcNextPosition(int robotNum){
 	}
 }
 
+<<<<<<< HEAD
 /**
 * @brief   transition between 2 type of move
 * @param   
@@ -690,6 +817,48 @@ void  GeneTraj::transition(){
 
 
 /**
+=======
+/**
+* @brief   transition between 2 type of move
+* @param   
+* @return  void
+*/
+// TODO PB with 0 1 2
+void  GeneTraj::transition(){
+	int i, j;
+	int delta =50;
+	bool temp = true ;
+    // default starting angle position
+	int moteurCible[3] ;
+	moteurCible[0]=1500; //theta1
+	moteurCible[1]=1500; //theta2
+	moteurCible[2]=1500; //theta3 ??
+	
+	for (i = 0; i<6;i++){ // legs	
+		for (j = 0; j < 3; j++){ // motors
+			if(  moteurCible[j] -vMoteur[i][j] > 100 ){
+				vMoteur[i][j] += delta;
+				temp = false ;
+				cout<<"+ petit  "<<vMoteur[i][j] <<"  "<<moteurCible[j] <<endl;
+				break;
+			}			
+			else if(moteurCible[j] -vMoteur[i][j]< -100){
+				vMoteur[i][j] -= delta;
+				temp = false ;
+				cout<<"+ grand  "<<vMoteur[i][j] <<"  "<< moteurCible[j] <<endl;
+			}
+		}
+	}
+	if(temp){
+		transition_ok = true;
+	}
+		
+}
+
+
+
+/**
+>>>>>>> master
 * @brief   
 * @param   double, double, double, double
 * @return  void
@@ -698,8 +867,24 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 	int i = 0, j = 0;
 	move_etat met = calcMoveType(dBetaX,dBetaY,dBetaZ, dBetaA);
 	
+<<<<<<< HEAD
 	// if the type of movement changes or it's the first loop til the switch on
 	if (met != metat || first_loop==0){	
+=======
+	// if the type of movement changes 
+	
+	if (met != metat || first_loop==0){	
+		/*
+		// retablirAngles(); // set angles to zero
+		metat = met;
+		if (first_loop == 0){
+		// cout << "reset init"<< endl;	
+		retablirAngles();
+		retat = E_ROBOT_PARALLEL; // set robot to parallel mode
+		first_loop=1;
+		}
+		/**/ 
+>>>>>>> master
 		cout << "transition" <<endl;
 		transition_ok=false;
 		transition();
@@ -708,6 +893,7 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 			retablirAngles();
 			retat = E_ROBOT_PARALLEL;
 			metat=met;
+<<<<<<< HEAD
 			new_move=true;
 		}
 	}
@@ -732,11 +918,38 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 						break;
 				}
 				///cout << betaX<<" "<<betaY<<" "<<betaZ<<" "<<betaA<<endl;
+=======
+		}
+	}
+	// if the type of movement does not change
+	else{ 
+		switch (retat){
+			// TODO add comment 
+			case E_ROBOT_PARALLEL: // 
+				switch(metat){
+					case E_MOVE_UPDOWN:
+						betaZ += dBetaZ;
+						break;
+					case E_MOVE_HORIZONTAL:
+						betaX += dBetaX;
+						break;
+					case E_MOVE_VERTICAL:
+						betaY += dBetaY;
+						break;
+					case E_MOVE_TOURNE:
+						betaA += dBetaA;
+						break;
+				}
+>>>>>>> master
 				break;
 				
 			/*  NEVER USED	*/
 			case E_ROBOT_LEFT_UP: // 0 2 4 
+<<<<<<< HEAD
 				///cout << "left_up"<< endl;
+=======
+				cout << "left_up"<< endl;
+>>>>>>> master
 				//added to move the robot because with proper syntax it was not suppose to move
 				betaX += dBetaX;
 				betaY += dBetaY;
@@ -746,7 +959,11 @@ void GeneTraj::createTraj(double dBetaX, double dBetaY, double dBetaZ, double dB
 			/*  NEVER USED	*/
 			case E_ROBOT_RIGHT_UP: // 1 3 5 
 			// never accessed, because the robot state is always left_up
+<<<<<<< HEAD
 				///cout << "right_up"<< endl;
+=======
+				cout << "right_up"<< endl;
+>>>>>>> master
 				betaX += dBetaX;
 				betaY += dBetaY;
 				betaA += dBetaA;
@@ -827,6 +1044,7 @@ ros::ServiceClient *pclient = NULL;
 * @return  void
 */
 void ecouteTranslation(const hexapode_v2::translation trans)
+<<<<<<< HEAD
 {	
 
 	if (trans.dx == 99 && trans.dy == 99 && trans.dh == 99 && trans.da == 99 && gen.navigation_on){
@@ -839,6 +1057,10 @@ void ecouteTranslation(const hexapode_v2::translation trans)
 		gen.navigation_on = true;
 		cout<<"autonomous navigation started "<<endl;
 	}
+=======
+{
+	double factor = 10; // magic factor to slow down the moves
+>>>>>>> master
 
 	else if(!gen.navigation_on){
 		double factor = 10; // magic factor to slow down the moves

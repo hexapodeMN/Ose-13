@@ -182,7 +182,11 @@ using namespace std ;
      trans.da = da;
      trans.dh = dh;
      
+<<<<<<< HEAD
      ///cout << "increments : "<<dx << dy <<dh << da << endl;
+=======
+
+>>>>>>> master
 
         ROS_DEBUG("dx: [%f]", trans.dx);
         ROS_DEBUG("dy: [%f]", trans.dy);
